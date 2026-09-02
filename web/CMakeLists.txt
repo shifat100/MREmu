@@ -7,6 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_definitions(-DLIBICONV_PLUG)
 
+if (NOT DEFINED ENV{MRE_SDK})
+    message(STATUS "MRE_SDK environment variable is not set.")
+else()
+    include_directories("$ENV{MRE_SDK}/include")
+endif()
+
 include_directories(
     "${CMAKE_SOURCE_DIR}/../include"
     "${CMAKE_SOURCE_DIR}/../MREmu"
@@ -16,7 +22,7 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/../deps/unicorn/include"
 )
 
-# MREngine Static Library for WASM
+# MREngine Static Library for WASM Target
 set(MRE_ENGINE_SOURCES
     "../MREmu/MREngine/Graphic.cpp"
     "../MREmu/MREngine/GraphicOld.cpp"
@@ -49,14 +55,11 @@ add_subdirectory("../deps/libiconv-cmake" "deps/libiconv")
 add_subdirectory("../deps/spdlog" "deps/spdlog")
 add_subdirectory("../deps/libADLMIDI" "deps/libADLMIDI")
 
-set(UNICORN_ARCH "arm" CACHE STRING "Supported architectures")
-add_subdirectory("../deps/unicorn" "deps/unicorn")
-
-# Core Emulator Web Executable
+# Core Emulator Web Executable Target
 set(WEB_SOURCES
-    "main_web.cpp"
+    "src/main_wasm.cpp"
+    "src/Cpu_wasm.cpp"
     "../MREmu/Memory.cpp"
-    "../MREmu/Cpu.cpp"
     "../MREmu/Bridge.cpp"
     "../MREmu/App.cpp"
     "../MREmu/ArmApp.cpp"
@@ -75,7 +78,6 @@ add_executable(mremu_web ${WEB_SOURCES})
 
 target_link_libraries(mremu_web
     MREngineWeb
-    unicorn
     ADLMIDI_static
     libiconv
     spdlog
@@ -89,7 +91,6 @@ if (EMSCRIPTEN)
 
     target_link_options(mremu_web PRIVATE
         "-sUSE_SDL=2"
-        "-sUSE_MALLOC__IMPLEMENTATION=1"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sINITIAL_MEMORY=67108864"
         "-sFORCE_FILESYSTEM=1"
